@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "692811497257",
+    "firebase_url": "https://moaapp-5a164-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "moaapp-5a164",
+    "storage_bucket": "moaapp-5a164.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:692811497257:android:0f7a2fc98a118d67f88138",
+        "android_client_info": {
+          "package_name": "com.example.moa_todo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAsf4XPxREw_ReI1-q1CYVT0X817UH5hc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
