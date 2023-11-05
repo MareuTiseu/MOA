@@ -1,4 +1,4 @@
-#Fri Nov 03 13:29:05 KST 2023
+#Sun Nov 05 21:38:07 KST 2023
 base.0=C\:\\firebase_cli\\moa_todo\\build\\app\\intermediates\\dex\\debug\\mergeDexDebug\\classes.dex
 base.1=C\:\\firebase_cli\\moa_todo\\build\\app\\intermediates\\dex\\debug\\mergeDexDebug\\classes2.dex
 base.2=C\:\\firebase_cli\\moa_todo\\build\\app\\intermediates\\dex\\debug\\mergeDexDebug\\classes3.dex

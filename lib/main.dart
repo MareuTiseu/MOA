@@ -20,7 +20,7 @@ import 'firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 
-var now_date = DateTime.now();
+var now_date = DateTime.now();  // 이거 앱 켜두고 12시 지나면 반응 안할듯..
 List totalList = ["잘 나오나 확인용",];
 
 void main() async {
@@ -51,13 +51,12 @@ class _MyAppState extends State<MyApp> {
   db를 위한 변수 선언
    */
   final TextEditingController _taskController = TextEditingController();
-  // final TextEditingController _statusController = TextEditingController();
-  // final TextEditingController _birthdayController = TextEditingController();
   final TextEditingController _categoryController = TextEditingController();
   final DatabaseService _databaseService = DatabaseService();
   Future<List<TodoItem>> _todoList = DatabaseService()
       .databaseConfig()
       .then((_) => DatabaseService().selectTodoItems());
+
   // id를 부여하기 위한 currentCount
   int currentCount = 0;
 
@@ -197,7 +196,7 @@ class _MyAppState extends State<MyApp> {
 
         children: [
 
-          todoListScreen(),
+          firebase_todoListScreen(),
 
           addTodo(), // 투두리스트 맨 밑의 입력창 영역
 
@@ -226,59 +225,44 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  Widget todoListScreen() {
-    return FutureBuilder(
-        future: _todoList,
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            currentCount = snapshot.data!.length;
-            if (currentCount == 0) {
-              return Text("No data exists.",
-                overflow: TextOverflow.ellipsis,  // 글자수 넘어가면 ...으로 보여주는 속성
-                maxLines: 2,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontFamily: 'Noto Sans KR',
-                  fontWeight: FontWeight.w400,
-                  height: 1.50,),);
-            } else {
+  Widget firebase_todoListScreen() {
+    return StreamBuilder(
+        stream: FirebaseFirestore.instance
+            .collection('todoitems/UzFciEzeJ7FfRdZh4b5k/todoitem').snapshots(),
+    builder: (BuildContext context,
+        AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot) {
 
-              return ListView.builder(
-                /*
-                아래 두 줄이 빠져서 이틀동안 고생함
-                ListView 사용 후 'Vertical viewport was given unbounded height' 에러 뜰 시 확인하기
-                 */
-                scrollDirection: Axis.vertical,
-                shrinkWrap: true,
-
-                itemCount: snapshot.data!.length,
-                itemBuilder: (BuildContext context, int index) {
-                  return todoBox(snapshot.data![index].id,snapshot.data![index].task, snapshot.data![index].status);
-                },
-              );
-            }
-          } else if (snapshot.hasError) {
-            return Text("Error.",
-              overflow: TextOverflow.ellipsis,  // 글자수 넘어가면 ...으로 보여주는 속성
-              maxLines: 2,
-              style: TextStyle(
-                fontSize: 16,
-                fontFamily: 'Noto Sans KR',
-                fontWeight: FontWeight.w400,
-                height: 1.50,),);
-          } else {
-            return const Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-              ),
+          /*
+          // 파이어베이스에서 데이터를 불러오는 동안 데이터가 없다고 에러가 뜨는걸 처리
+          하려고 했는데 투두 상태 바뀔 때마다 깜빡거리며 투두리스트가 흔들거림.. 없앴다..
+          if(snapshot.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: CircularProgressIndicator(),
             );
           }
-        },
-    );
+           */
 
+          final docs = snapshot.data!.docs;
+          currentCount = docs.length;
+
+          return ListView.builder(
+            /*
+            아래 두 줄이 빠져서 이틀동안 고생함
+            ListView 사용 후 'Vertical viewport was given unbounded height' 에러 뜰 시 확인하기
+            */
+            scrollDirection: Axis.vertical,
+            shrinkWrap: true,
+
+            itemCount: docs.length,
+            itemBuilder: (BuildContext context, int index) {
+              return todoBox(docs[index]);
+            },
+          );
+        }
+    );
   }
 
-  Widget todoBox(int id, String task, String status) {
+  Widget todoBox(QueryDocumentSnapshot docs) {
     return Column(
       children: [
         Row(
@@ -292,16 +276,12 @@ class _MyAppState extends State<MyApp> {
                   // 체크박스 아이콘
                   InkWell(  // 이미지를 버튼으로 쓰기 위해
                     onTap: () {
-                      /*
-                      status 상태 변경 코드
-                       */
-                      changingStatus(id);
+
+                      // status 상태 변경 코드
+                      firebase_changingStatus(docs);
                     },
-                    child: getCheckboxWidget(status),
-                    // Row(
-                    //   children: [
-                    //     Image.asset('assets/check_blank.png', height: 40),
-                    //   ],),
+                    child: getCheckboxWidget(docs['status']),
+
                   ),
 
                   SizedBox(width: 8,),
@@ -309,7 +289,7 @@ class _MyAppState extends State<MyApp> {
                   // todoItem 내용
                   Expanded(
 
-                    child: getTodoTaskWidget(id, task, status)),
+                    child: getTodoTaskWidget(docs),)
                 ],
               ),
             ),
@@ -394,17 +374,38 @@ class _MyAppState extends State<MyApp> {
 
   }
 
-  Widget getTodoTaskWidget(int id, String task, String status) {
+  void firebase_changingStatus(QueryDocumentSnapshot docs) {
+    if(docs['status'] == 'incomplete') {
+      setState(() {
+        FirebaseFirestore.instance.collection('todoitems/UzFciEzeJ7FfRdZh4b5k/todoitem').doc(docs.id).update({'status':'inProgress'});
+      });
+
+    } else if(docs['status'] == 'inProgress') {
+      setState(() {
+        FirebaseFirestore.instance.collection('todoitems/UzFciEzeJ7FfRdZh4b5k/todoitem').doc(docs.id).update({'status':'completed'});
+      });
+
+    } else if(docs['status'] == 'completed') {
+      setState(() {
+        FirebaseFirestore.instance.collection('todoitems/UzFciEzeJ7FfRdZh4b5k/todoitem').doc(docs.id).update({'status':'incomplete'});
+      });
+    } else {
+    print('Status changing error');
+    }
+
+  }
+
+  Widget getTodoTaskWidget(QueryDocumentSnapshot docs) {
     return GestureDetector(
       onTap: () {
-        Future<TodoItem> todoitem = _databaseService.selectTodoItem(id);
-        showDialog(context: this.context, barrierDismissible: false, builder: (BuildContext context) => updateTodoDialog(todoitem));
+        // Future<TodoItem> todoitem = _databaseService.selectTodoItem(id);
+        showDialog(context: this.context, barrierDismissible: false, builder: (BuildContext context) => firebase_updateTodoDialog(docs));
       },
-      child: Text(task,
+      child: Text(docs['task'],
           overflow: TextOverflow.ellipsis,  // 글자수 넘어가면 ...으로 보여주는 속성
           maxLines: 2,
           style: TextStyle(
-            color: status == 'incomplete' || status == 'inProgress' ? Colors.black : Color(0xff9F99A6),
+            color: docs['status'] == 'incomplete' || docs['status'] == 'inProgress' ? Colors.black : Color(0xff9F99A6),
             fontSize: 16,
             fontFamily: 'Noto Sans KR',
             fontWeight: FontWeight.w400,
@@ -431,10 +432,12 @@ class _MyAppState extends State<MyApp> {
         autofocus: true,
         onKey: (event) {
           if (event.isKeyPressed(LogicalKeyboardKey.enter)) {
-            setState(() {
+            setState(() async {
               value = _todoTextEditController.text;
+              _todoTextEditController.clear();
 
-
+              /*
+              로컬 디비에 저장하는 방법
               // db에다 저장하고 싶어용
               _databaseService
                   .insertTodoItem(TodoItem(
@@ -454,6 +457,19 @@ class _MyAppState extends State<MyApp> {
                     print("insert error");
                   }},
               );
+              */
+
+              // 파이어베이스에다 저장할 수 있다!
+              await FirebaseFirestore.instance.collection('todoitems/UzFciEzeJ7FfRdZh4b5k/todoitem').doc()
+              .set({
+                'id': currentCount + 1,
+                'task': value,
+                'status': 'incomplete',
+                'birthday': DateTime.now(),
+                'category': '없음'
+              });
+              _todoTextEditController.clear();
+
 
             });
           }
@@ -599,6 +615,52 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
+  Widget firebase_updateTodoDialog(QueryDocumentSnapshot docs) {
+    return AlertDialog(
+      title: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(child: const Text("투두 수정")),
+          IconButton(
+              onPressed: () {
+                Navigator.of(this.context).pop();
+                showDialog(context: this.context,
+                    builder: (context) => firebase_deleteTodoDialog(docs));
+              },
+              icon: const Icon(Icons.delete)),
+          IconButton(
+              onPressed: () => Navigator.of(this.context).pop(),
+              icon: const Icon(Icons.close))
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("투두 생성일시 : " + docs['birthday'].toString(),
+            textAlign: TextAlign.right,),
+          const SizedBox(height: 16,),
+
+          TextField(
+            controller: _taskController,
+            decoration: const InputDecoration(hintText: "투두를 수정하세요"),
+          ),
+          const SizedBox(height: 16,),
+
+          Text("목표 카테고리 : " + docs['category'],),
+          const SizedBox(height: 16,),
+
+          ElevatedButton(
+              onPressed: () {
+                docs['task'].update(_taskController);
+              },
+              child: const Text("수정")
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget deleteTodoDialog(Future<TodoItem> todoitem) {
     return AlertDialog(
       title: const Text("투두를 삭제하시겠습니까?"),
@@ -646,7 +708,26 @@ class _MyAppState extends State<MyApp> {
         },
       ),
     );
+  }
 
+  Widget firebase_deleteTodoDialog(QueryDocumentSnapshot docs) {
+    return AlertDialog(
+      title: const Text("투두를 삭제하시겠습니까?"),
+      content: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          ElevatedButton(
+            onPressed: () {
+              FirebaseFirestore.instance.collection('todoitems/UzFciEzeJ7FfRdZh4b5k/todoitem').doc(docs.id).delete();
+              Navigator.pop(this.context);
+            }, child: const Text("예"),
+          ),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(this.context),
+              child: const Text("아니오")),
+        ],
+      )
+    );
   }
 
 }
