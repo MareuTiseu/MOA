@@ -17,6 +17,7 @@ import 'package:moa_todo/databaseConfig.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 
 var now_date = DateTime.now();
@@ -198,7 +199,7 @@ class _MyAppState extends State<MyApp> {
 
           todoListScreen(),
 
-          addTodo(), // 투두 입력창 영역
+          addTodo(), // 투두리스트 맨 밑의 입력창 영역
 
           SizedBox(height: 12,),
 
@@ -453,9 +454,6 @@ class _MyAppState extends State<MyApp> {
                     print("insert error");
                   }},
               );
-
-              // db 반영해서 투두 새로 보여주기
-
 
             });
           }
